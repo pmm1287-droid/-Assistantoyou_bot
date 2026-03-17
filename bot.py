@@ -2,7 +2,7 @@ import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.types import ChatJoinRequest
 
-BOT_TOKEN = "8668754511:AAEAeR4mZn5NbgyNXcC-VA9TmmTvBzSI880"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
