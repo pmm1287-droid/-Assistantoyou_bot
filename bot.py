@@ -9,7 +9,7 @@ from aiogram.types import ChatJoinRequest, Message
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # ВСТАВ СВІЙ TELEGRAM USER ID
-ADMIN_ID = b2bhelp001
+ADMIN_ID = @b2bhelp001
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
