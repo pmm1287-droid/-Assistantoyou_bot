@@ -7,10 +7,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.types import ChatJoinRequest, Message
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
-# ВСТАВ СВІЙ TELEGRAM USER ID
 ADMIN_ID = 8415140381
-
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -63,13 +60,12 @@ async def handle_join_request(join_request: ChatJoinRequest):
         pass
 
 @dp.message()
-async def handle_all_messages(message: Message):
-    # 1) Якщо це повідомлення від користувача боту в приват
+async def handle_messages(message: Message):
+    # Користувач пише боту -> бот пересилає тобі
     if message.chat.type == "private" and message.from_user.id != ADMIN_ID:
         username = f"@{message.from_user.username}" if message.from_user.username else "немає"
-        text = message.text or "[не текстове повідомлення]"
+        text = message.text or message.caption or "[не текстове повідомлення]"
 
-        # Шлемо тобі повідомлення і вказуємо ID користувача
         await bot.send_message(
             chat_id=ADMIN_ID,
             text=(
@@ -82,33 +78,33 @@ async def handle_all_messages(message: Message):
         )
         return
 
-    # 2) Якщо це твоє повідомлення боту, і ти відповідаєш на переслану картку
+    # Ти відповідаєш на повідомлення бота -> бот шле відповідь користувачу
     if message.chat.type == "private" and message.from_user.id == ADMIN_ID:
         if not message.reply_to_message or not message.reply_to_message.text:
             return
 
         original_text = message.reply_to_message.text
-
         if "User ID:" not in original_text:
             return
 
         try:
-            user_id_line = [line for line in original_text.splitlines() if line.startswith("User ID:")][0]
-            target_user_id = int(user_id_line.replace("User ID:", "").strip())
-        except Exception:
-            await message.answer("Не зміг визначити user ID.")
-            return
+            for line in original_text.splitlines():
+                if line.startswith("User ID:"):
+                    target_user_id = int(line.replace("User ID:", "").strip())
+                    break
+            else:
+                await message.answer("❌ Не знайшов User ID")
+                return
 
-        reply_text = message.text or "[порожнє повідомлення]"
+            reply_text = message.text or message.caption or "[порожнє повідомлення]"
 
-        try:
             await bot.send_message(
                 chat_id=target_user_id,
                 text=reply_text
             )
-            await message.answer("✅ Відправлено користувачу")
+            await message.answer("✅ Відправлено")
         except Exception as e:
-            await message.answer(f"❌ Не вдалося відправити: {e}")
+            await message.answer(f"❌ Помилка: {e}")
 
 async def main():
     await dp.start_polling(bot)
