@@ -12,6 +12,10 @@ ADMIN_ID = 8415140381
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+# Тут бот запам'ятовує:
+# message_id повідомлення, яке він надіслав адміну -> user_id користувача
+admin_reply_map = {}
+
 WELCOME_TEXT = """Якщо ви хочете почати співпрацю, будь ласка, уважно ознайомтесь із наступними умовами:
 
 ⬇️ Для того щоб приєднатися до команди, потрібно виконати всі кроки, зазначені нижче.
@@ -61,50 +65,49 @@ async def handle_join_request(join_request: ChatJoinRequest):
 
 @dp.message()
 async def handle_messages(message: Message):
-    # Користувач пише боту -> бот пересилає тобі
+    # 1) Повідомлення від користувача -> переслати адміну
     if message.chat.type == "private" and message.from_user.id != ADMIN_ID:
         username = f"@{message.from_user.username}" if message.from_user.username else "немає"
         text = message.text or message.caption or "[не текстове повідомлення]"
 
-        await bot.send_message(
+        sent_to_admin = await bot.send_message(
             chat_id=ADMIN_ID,
             text=(
                 "📩 Нове повідомлення від користувача\n\n"
                 f"Ім'я: {message.from_user.full_name}\n"
                 f"Username: {username}\n"
                 f"User ID: {message.from_user.id}\n\n"
-                f"Текст:\n{text}"
+                f"Текст:\n{text}\n\n"
+                "↩️ Відповідай саме через Reply на це повідомлення."
             )
         )
+
+        admin_reply_map[sent_to_admin.message_id] = message.from_user.id
         return
 
-    # Ти відповідаєш на повідомлення бота -> бот шле відповідь користувачу
+    # 2) Повідомлення від адміна -> відправити користувачу
     if message.chat.type == "private" and message.from_user.id == ADMIN_ID:
-        if not message.reply_to_message or not message.reply_to_message.text:
+        if not message.reply_to_message:
+            await message.answer("❗ Відповідай через Reply на повідомлення користувача.")
             return
 
-        original_text = message.reply_to_message.text
-        if "User ID:" not in original_text:
+        replied_message_id = message.reply_to_message.message_id
+        target_user_id = admin_reply_map.get(replied_message_id)
+
+        if not target_user_id:
+            await message.answer("❗ Не знайшов, кому відправити. Відповідай саме на повідомлення, яке бот прислав тобі.")
             return
+
+        reply_text = message.text or message.caption or "[порожнє повідомлення]"
 
         try:
-            for line in original_text.splitlines():
-                if line.startswith("User ID:"):
-                    target_user_id = int(line.replace("User ID:", "").strip())
-                    break
-            else:
-                await message.answer("❌ Не знайшов User ID")
-                return
-
-            reply_text = message.text or message.caption or "[порожнє повідомлення]"
-
             await bot.send_message(
                 chat_id=target_user_id,
                 text=reply_text
             )
-            await message.answer("✅ Відправлено")
+            await message.answer("✅ Відправлено користувачу")
         except Exception as e:
-            await message.answer(f"❌ Помилка: {e}")
+            await message.answer(f"❌ Не вдалося відправити: {e}")
 
 async def main():
     await dp.start_polling(bot)
