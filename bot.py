@@ -46,13 +46,6 @@ def run_server():
     server = HTTPServer(("0.0.0.0", port), Handler)
     server.serve_forever()
 
-@dp.chat_join_request()
-async def handle_join_request(join_request: ChatJoinRequest):
-    # Заявка ЗАЛИШАЄТЬСЯ висіти, бот нікого не приймає
-    try:
-        await bot.send_message(
-            chat_id=join_request.user_chat_id,
-            text=WELCOME_TEXT
         )
     except Exception as e:
         await bot.send_message(
